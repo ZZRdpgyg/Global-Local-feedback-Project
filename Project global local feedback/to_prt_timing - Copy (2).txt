@@ -1,0 +1,105 @@
+import pandas as pd
+import colorsys
+import os
+import glob
+
+subID = ["AZI25", "HLN25", "YRG04"]
+
+for ref in subID:
+    dataPath = "../" + ref + "/logfiles/"
+
+    for file in glob.glob(dataPath + "*.txt"):
+
+        dataFile = pd.read_csv(file,sep='\t')
+
+        #####
+        ## trials
+        #####
+
+        prtPath = file[0:-4] + '_trials.prt'
+
+        trialOnsets = dataFile['event'].map(len) == 14
+
+        dataFile_filt = dataFile[trialOnsets].copy()
+        dataFile_filt['Type'] = [event[0:8] for event in dataFile.iloc[dataFile[trialOnsets].index]["event"]]
+
+        # in ms, rounded to cs
+        dataFile_filt['Onset_1'] = round(dataFile_filt.onset*100, 0).astype('int')*10
+        dataFile_filt['Onset_2'] = dataFile_filt.Onset_1 + 2600
+
+        types = pd.unique(dataFile_filt.Type.ravel())
+        types.sort()
+        f = [dataFile_filt.loc[dataFile_filt.Type == i, ['Type', 'Onset_1', 'Onset_2']] for i in types]
+
+        f_str = [f[i][['Onset_1', 'Onset_2']].to_string(header = False, index = False, col_space=4, justify='right') for i in range(len(types))]
+
+        colors = [[int(255*x) for x in colorsys.hsv_to_rgb(1.0 / (len(types) + 1) * i, 1.0, 1.0)] for i in range(0, len(types))]
+
+        p = '\n'.join(['{}\n{}\n{}\nColor: {}\n'.format(types[i], len(f[i]), f_str[i], ' '.join(map(str,colors[i]))) for i in range(len(types))])
+
+        printFile = open(prtPath,'w')
+        printFile.writelines(['\n',
+                            'FileVersion:        2\n',
+                            '\n',
+                            'ResolutionOfTime:   msecs\n',
+                            '\n',
+                            'Experiment:         Timing\n',
+                            '\n',
+                            'BackgroundColor:    0 0 0\n',
+                            'TextColor:          255 255 255\n',
+                            'TimeCourseColor:    255 255 255\n',
+                            'TimeCourseThick:    3\n',
+                            'ReferenceFuncColor: 100 100 200\n',
+                            'ReferenceFuncThick: 2\n',
+                            '\n'])
+        printFile.write('NrOfConditions:     {}\n\n'.format(len(types)))
+        printFile.write(p  + '\n')
+        printFile.close()
+
+
+        #####
+        ## mapping
+        #####
+
+        prtPath = file[0:-4] + '_mapping.prt'
+
+        trialOnsets = [event[0:3] == 'map' for event in dataFile['event']]
+
+        dataFile_filt = dataFile[trialOnsets].copy()
+
+        dataFile_filt['Type'] = [event[4:7] for event in dataFile.iloc[dataFile[trialOnsets].index]["event"]]
+
+        # in ms, rounded to cs
+        dataFile_filt['Onset_1'] = round(dataFile_filt.onset*100, 0).astype('int')*10
+        dataFile_filt['Onset_2'] = dataFile_filt.Onset_1 + 12000
+
+        types = pd.unique(dataFile_filt.Type.ravel())
+        types.sort()
+        f = [dataFile_filt.loc[dataFile_filt.Type == i, ['Type', 'Onset_1', 'Onset_2']] for i in types]
+
+        f_str = [f[i][['Onset_1', 'Onset_2']].to_string(header = False, index = False, col_space=4, justify='right') for i in range(len(types))]
+
+        colors = [[int(255*x) for x in colorsys.hsv_to_rgb(1.0 / (len(types) + 1) * i, 1.0, 1.0)] for i in range(0, len(types))]
+
+        p = '\n'.join(['{}\n{}\n{}\nColor: {}\n'.format(types[i], len(f[i]), f_str[i], ' '.join(map(str,colors[i]))) for i in range(len(types))])
+
+        printFile = open(prtPath,'w')
+        printFile.writelines(['\n',
+                            'FileVersion:        2\n',
+                            '\n',
+                            'ResolutionOfTime:   msecs\n',
+                            '\n',
+                            'Experiment:         Somatosensory\n',
+                            '\n',
+                            'BackgroundColor:    0 0 0\n',
+                            'TextColor:          255 255 255\n',
+                            'TimeCourseColor:    255 255 255\n',
+                            'TimeCourseThick:    3\n',
+                            'ReferenceFuncColor: 100 100 200\n',
+                            'ReferenceFuncThick: 2\n',
+                            '\n'])
+        printFile.write('NrOfConditions:     {}\n\n'.format(len(types)))
+        printFile.write(p  + '\n')
+        printFile.close()
+
+print("done")
